@@ -73,6 +73,15 @@ class PublicKey:
     def scheme(self) -> int:
         return self.value.scheme()
 
+    @staticmethod
+    def from_bytes(data: bytes) -> PublicKey:
+        if data[0] == Ed25519PublicKey.SCHEME:
+            return PublicKey(Ed25519PublicKey(data[1:]))
+        elif data[0] == Secp256k1PublicKey.SCHEME:
+            return PublicKey(Secp256k1PublicKey(data[1:]))
+        else:
+            raise TypeError
+
     def bytes(self) -> bytes:
         return self.value.bytes()
 
@@ -87,9 +96,9 @@ class PublicKey:
         data = b64decode(s)
 
         if data[0] == Ed25519PublicKey.SCHEME:
-            return PublicKey(Ed25519PublicKey(data[1:]))
+            return PublicKey(Ed25519PublicKey.from_bytes(data[1:]))
         elif data[0] == Secp256k1PublicKey.SCHEME:
-            return PublicKey(Secp256k1PublicKey(data[1:]))
+            return PublicKey(Secp256k1PublicKey.from_bytes(data[1:]))
         else:
             raise TypeError
 
