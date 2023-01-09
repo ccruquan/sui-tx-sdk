@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "sui-tx-sdk"
+version = "0.1.0"
+description = ""
+authors = ["ruquan.chen"]
+readme = "README.md"
+packages = [{include = "sui_tx_sdk"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pynacl = "^1.5.0"
+secp256k1 = "^0.14.0"
+deprecated = "^1.2.13"
+
+
+[tool.poetry.group.dev.dependencies]
+pylint = "^2.15.9"
+black = {version = "^23.1a1", allow-prereleases = true}
+
+
+[tool.poetry.group.test.dependencies]
+pyyaml = "^6.0"
+pytest = "^7.2.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
