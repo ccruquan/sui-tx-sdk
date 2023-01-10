@@ -167,7 +167,6 @@ class Signature:
     def verify(self, tx, author: SuiAddress) -> bool:
         sig, pk = self.get_verification_inputs(author)
         msg = tx.bytes()
-        print(f"msg: {msg.hex()}")
         return pk.verify(msg, sig)
 
 

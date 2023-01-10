@@ -3,9 +3,12 @@ from yaml import load, Loader
 
 import sui_tx_sdk.transaction as stx
 from sui_tx_sdk.sui_address import SuiAddress
+from sui_tx_sdk.account_address import AccountAddress
 from sui_tx_sdk.object import ObjectID, ObjectDigest, ObjectRef
 from sui_tx_sdk.bcs import Serializer, Deserializer
 from sui_tx_sdk.crypto import Signature
+import sui_tx_sdk.type_tag as type_tag
+import sui_tx_sdk.call_arg as call_arg
 
 
 def load_test_data(typ):
@@ -44,7 +47,7 @@ def get_kind_from_value(value):
         "PaySui": create_pay_sui,
         "PayAllSui": create_pay_all_sui,
         "ChangeEpoch": create_change_epoch,
-        # "Call": create_transfer_object,
+        "Call": create_call,
     }
 
     for typ, creator in value_creator.items():
@@ -106,6 +109,75 @@ def create_change_epoch(kind):
     computation_charge = kind["computation_charge"]
     storage_rebate = kind["storage_rebate"]
     return stx.ChangeEpoch(epoch, storage_charge, computation_charge, storage_rebate)
+
+
+def create_call(kind):
+    package = create_object_ref(kind["package"])
+    module = kind["module"]
+    function = kind["function"]
+    type_args = create_move_call_type_args(kind["type_arguments"])
+    args = create_move_call_args(kind["arguments"])
+
+    return stx.MoveCall(package, module, function, type_args, args)
+
+
+def create_move_call_type_args(obj):
+    type_tag_creator = {
+        "bool": lambda x: type_tag.BoolTag(),
+        "u8": lambda x: type_tag.U8Tag(),
+        "u64": lambda x: type_tag.U64Tag(),
+        "u128": lambda x: type_tag.U128Tag(),
+        "address": lambda x: type_tag.AddressTag(),
+        "struct": create_type_tag_struct,
+    }
+
+    def create(obj):
+        for type, creator in type_tag_creator.items():
+            if type in obj:
+                return type_tag.TypeTag(creator(obj))
+
+    return [create(value) for value in obj]
+
+
+def create_type_tag_struct(obj):
+    obj = obj["struct"]
+    address = AccountAddress.from_hex(obj["address"])
+    module = obj["module"]
+    name = obj["name"]
+    type_args = create_move_call_type_args(obj["type_args"])
+    return type_tag.StructTag(address, module, name, type_args)
+
+
+def create_move_call_args(obj):
+    creators = {
+        "Pure": create_move_call_args_pure,
+        "Object": create_move_call_args_object,
+        "ObjVec": lambda vec: [create_move_call_args_object(v) for v in vec],
+    }
+
+    def create(obj):
+        for type, creator in creators.items():
+            if type in obj:
+                return call_arg.CallArg(creator(obj[type]))
+
+    return [create(value) for value in obj]
+
+
+def create_move_call_args_pure(value):
+    return call_arg.PureArg(bytes(value))
+
+
+def create_move_call_args_object(obj):
+    if "ImmOrOwnedObject" in obj:
+        ref = create_object_ref(obj["ImmOrOwnedObject"])
+        return call_arg.ObjectArg(ref)
+    elif "SharedObject" in obj:
+        obj = obj["SharedObject"]
+        id = ObjectID.from_hex(obj["id"])
+        version = obj["initial_shared_version"]
+        return call_arg.ObjectArg(call_arg.SharedObjectArg(id, version))
+
+    raise Exception("Invalid value")
 
 
 def serialize_obj(obj):

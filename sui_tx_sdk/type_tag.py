@@ -16,7 +16,7 @@ class TypeTag:
     U8: int = 1
     U64: int = 2
     U128: int = 3
-    ACCOUNT_ADDRESS: int = 4
+    ADDRESS: int = 4
     SIGNER: int = 5
     VECTOR: int = 6
     STRUCT: int = 7
@@ -48,7 +48,7 @@ class TypeTag:
             return TypeTag(U64Tag.deserialize(deserializer))
         elif variant == TypeTag.U128:
             return TypeTag(U128Tag.deserialize(deserializer))
-        elif variant == TypeTag.ACCOUNT_ADDRESS:
+        elif variant == TypeTag.ADDRESS:
             return TypeTag(AccountAddressTag.deserialize(deserializer))
         elif variant == TypeTag.SIGNER:
             raise NotImplementedError
@@ -63,119 +63,48 @@ class TypeTag:
         serializer.struct(self.value)
 
 
+def simple_tag(tag: int, name: str):
+    def decorate(cls):
+        def deserialize(deserializer: Deserializer):
+            return cls()
+
+        def serialize(self, serializer: Serializer):
+            return
+
+        setattr(cls, "deserialize", deserialize)
+        setattr(cls, "serialize", serialize)
+        setattr(cls, "variant", lambda self: tag)
+        setattr(cls, "__str__", lambda self: name)
+        setattr(cls, "__eq__", lambda self, o: isinstance(o, cls))
+
+        return cls
+
+    return decorate
+
+
+@simple_tag(TypeTag.BOOL, "bool")
 class BoolTag:
-    value: bool
-
-    def __init__(self, value: bool):
-        self.value = value
-
-    def __eq__(self, other: BoolTag) -> bool:
-        return self.value == other.value
-
-    def __str__(self):
-        return self.value.__str__()
-
-    def variant(self):
-        return TypeTag.BOOL
-
-    @staticmethod
-    def deserialize(deserializer: Deserializer) -> BoolTag:
-        return BoolTag(deserializer.bool())
-
-    def serialize(self, serializer: Serializer):
-        serializer.bool(self.value)
+    pass
 
 
+@simple_tag(TypeTag.U8, "u8")
 class U8Tag:
-    value: int
-
-    def __init__(self, value: int):
-        self.value = value
-
-    def __eq__(self, other: U8Tag) -> bool:
-        return self.value == other.value
-
-    def __str__(self):
-        return self.value.__str__()
-
-    def variant(self):
-        return TypeTag.U8
-
-    @staticmethod
-    def deserialize(deserializer: Deserializer) -> U8Tag:
-        return U8Tag(deserializer.u8())
-
-    def serialize(self, serializer: Serializer):
-        serializer.u8(self.value)
+    pass
 
 
+@simple_tag(TypeTag.U64, "u64")
 class U64Tag:
-    value: int
-
-    def __init__(self, value: int):
-        self.value = value
-
-    def __eq__(self, other: U64Tag) -> bool:
-        return self.value == other.value
-
-    def __str__(self):
-        return self.value.__str__()
-
-    def variant(self):
-        return TypeTag.U64
-
-    @staticmethod
-    def deserialize(deserializer: Deserializer) -> U64Tag:
-        return U64Tag(deserializer.u64())
-
-    def serialize(self, serializer: Serializer):
-        serializer.u64(self.value)
+    pass
 
 
+@simple_tag(TypeTag.U128, "u128")
 class U128Tag:
-    value: int
-
-    def __init__(self, value: int):
-        self.value = value
-
-    def __eq__(self, other: U128Tag) -> bool:
-        return self.value == other.value
-
-    def __str__(self):
-        return self.value.__str__()
-
-    def variant(self):
-        return TypeTag.U128
-
-    @staticmethod
-    def deserialize(deserializer: Deserializer) -> U128Tag:
-        return U128Tag(deserializer.u128())
-
-    def serialize(self, serializer: Serializer):
-        serializer.u128(self.value)
+    pass
 
 
-class AccountAddressTag:
-    value: AccountAddress
-
-    def __init__(self, value: AccountAddress):
-        self.value = value
-
-    def __eq__(self, other: AccountAddressTag) -> bool:
-        return self.value == other.value
-
-    def __str__(self):
-        return self.value.__str__()
-
-    def variant(self):
-        return TypeTag.ACCOUNT_ADDRESS
-
-    @staticmethod
-    def deserialize(deserializer: Deserializer) -> AccountAddressTag:
-        return AccountAddressTag(deserializer.struct(AccountAddress))
-
-    def serialize(self, serializer: Serializer):
-        serializer.struct(self.value)
+@simple_tag(TypeTag.ADDRESS, "address")
+class AddressTag:
+    pass
 
 
 class StructTag:
@@ -235,7 +164,7 @@ class StructTag:
         return StructTag(address, module, name, type_args)
 
     def serialize(self, serializer: Serializer):
-        self.address.serialize(serializer)
+        serializer.struct(self.address)
         serializer.str(self.module)
         serializer.str(self.name)
         serializer.sequence(self.type_args, Serializer.struct)

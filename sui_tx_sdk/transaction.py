@@ -656,6 +656,13 @@ class MoveCall:
         args = deserializer.sequence(CallArg.deserialize)
         return MoveCall(package, module, function, type_args, args)
 
+    def serialize(self, serializer: Serializer):
+        serializer.struct(self.package)
+        serializer.str(self.module)
+        serializer.str(self.function)
+        serializer.sequence(self.type_args, Serializer.struct)
+        serializer.sequence(self.args, Serializer.struct)
+
 
 TX = (
     TransferObject
